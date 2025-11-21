@@ -14,10 +14,10 @@ const EmptyState: React.FC<EmptyStateProps> = ({ onAddFirst, hasItems }) => {
           <Database className="w-8 h-8 text-blue-600" />
         </div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          Gestor de Pontos GTC
+          K-SIMSACE
         </h2>
         <p className="text-gray-500 mb-8">
-          Selecione um equipamento na barra lateral para ver e editar os seus pontos técnicos, ou crie um novo equipamento utilizando a Inteligência Artificial para gerar a lista de sinais automaticamente.
+          Smart Integration & Management System. Selecione um equipamento na barra lateral para ver e editar os seus pontos técnicos, ou crie um novo equipamento utilizando a Inteligência Artificial.
         </p>
         
         {!hasItems && (

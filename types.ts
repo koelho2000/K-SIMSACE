@@ -20,9 +20,35 @@ export interface Equipment {
   name: string;
   category: string;
   description?: string;
+  quantity: number; // New field for multiplier
   points: GtcPoint[];
+}
+
+export interface ProjectInfo {
+  projectName: string;
+  location: string;
+  clientName: string;
+  technicianName: string;
+  technicianCompany: string;
 }
 
 export interface GenerationResponse {
   points: GtcPoint[];
+}
+
+// Budget Types
+export interface BudgetItem {
+  category: 'HARDWARE' | 'FIELD_DEVICES' | 'ELECTRICAL' | 'SERVICES';
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  unit: string; // e.g., "un", "m", "h", "lot"
+}
+
+export interface BudgetProposal {
+  items: BudgetItem[];
+  currency: string;
+  total: number;
+  assumptions: string[]; // Notes about the budget
 }

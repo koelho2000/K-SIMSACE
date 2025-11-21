@@ -1,8 +1,10 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { PointType, GtcPoint } from "../types";
+import { PointType, GtcPoint, Equipment, BudgetProposal } from "../types";
 
 const apiKey = process.env.API_KEY || '';
 const ai = new GoogleGenAI({ apiKey });
+
+const MODEL_ID = 'gemini-2.5-flash';
 
 export const generatePointsForEquipment = async (
   equipmentName: string, 
@@ -12,8 +14,6 @@ export const generatePointsForEquipment = async (
     console.error("API Key is missing");
     return [];
   }
-
-  const modelId = 'gemini-2.5-flash';
 
   const systemInstruction = `
     Você é um Engenheiro Sénior de Automação e Gestão Técnica Centralizada (GTC/BMS) com vasta experiência em projetos de AVAC, Eletricidade e Hidráulica.
@@ -45,7 +45,7 @@ export const generatePointsForEquipment = async (
 
   try {
     const response = await ai.models.generateContent({
-      model: modelId,
+      model: MODEL_ID,
       contents: prompt,
       config: {
         systemInstruction: systemInstruction,
@@ -92,5 +92,92 @@ export const generatePointsForEquipment = async (
   } catch (error) {
     console.error("Error generating points:", error);
     return [];
+  }
+};
+
+export const generateBudgetProposal = async (equipmentList: Equipment[]): Promise<BudgetProposal | null> => {
+  if (!apiKey) return null;
+
+  // 1. Compile Project Statistics considering Quantity
+  let diCount = 0, doCount = 0, aiCount = 0, aoCount = 0;
+  equipmentList.forEach(eq => {
+    const qty = eq.quantity || 1;
+    eq.points.forEach(p => {
+      if (p.type === PointType.DI) diCount += qty;
+      if (p.type === PointType.DO) doCount += qty;
+      if (p.type === PointType.AI) aiCount += qty;
+      if (p.type === PointType.AO) aoCount += qty;
+    });
+  });
+
+  const equipSummary = equipmentList
+    .map(e => `- ${e.quantity || 1}x ${e.name} (${e.category})`)
+    .join('\n');
+
+  const prompt = `
+    Analise os seguintes dados do projeto de GTC (Gestão Técnica Centralizada):
+    
+    ESTATÍSTICAS DE PONTOS FÍSICOS (I/O) TOTAIS (Já multiplicados pela quantidade de equipamentos):
+    - DI: ${diCount}
+    - DO: ${doCount}
+    - AI: ${aiCount}
+    - AO: ${aoCount}
+    - TOTAL IO: ${diCount + doCount + aiCount + aoCount}
+    
+    LISTA DE EQUIPAMENTOS CONTROLADOS (com quantidades):
+    ${equipSummary}
+    
+    TAREFA:
+    Crie um ORÇAMENTO ESTIMATIVO detalhado para este projeto.
+    
+    CATEGORIAS OBRIGATÓRIAS:
+    1. HARDWARE: Controladores de Automação (PLCs), Cartas de I/O (considere reserva de 10%), Fontes de Alimentação, UPS de Automação.
+    2. FIELD_DEVICES: Equipamento de Campo estimado com base na lista de equipamentos e suas quantidades (Sondas de Temperatura, Pressostatos, Atuadores de Válvula, Atuadores de Registo).
+    3. ELECTRICAL: Quadros Elétricos de GTC (estimar tamanho pelo nº de pontos), Cablagem de Campo (estimar média de 20m por ponto), Esteira/Caminhos de cabos.
+    4. SERVICES: Engenharia (Desenhos, Esquemas), Programação de Software, Configuração de SCADA, Comissionamento em Obra, Gestão de Obra.
+    
+    DIRETRIZES DE PREÇOS (Base Europa/Portugal):
+    - Use valores realistas de mercado (ex: Engenharia ~50€/h, PLC por ponto ~30€-50€, Cabo ~1.5€/m).
+    - UPS pequena: ~250€.
+    - Sondas: ~60-120€.
+    - Atuadores: ~150-250€.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: MODEL_ID,
+      contents: prompt,
+      config: {
+        systemInstruction: "Você é um Diretor Comercial de uma empresa de Engenharia e Automação. Gere um orçamento detalhado em formato JSON.",
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            items: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  category: { type: Type.STRING, enum: ['HARDWARE', 'FIELD_DEVICES', 'ELECTRICAL', 'SERVICES'] },
+                  description: { type: Type.STRING },
+                  quantity: { type: Type.NUMBER },
+                  unit: { type: Type.STRING },
+                  unitPrice: { type: Type.NUMBER },
+                  totalPrice: { type: Type.NUMBER }
+                }
+              }
+            },
+            currency: { type: Type.STRING, enum: ['EUR'] },
+            total: { type: Type.NUMBER },
+            assumptions: { type: Type.ARRAY, items: { type: Type.STRING } }
+          }
+        }
+      }
+    });
+
+    return JSON.parse(response.text || "{}");
+  } catch (error) {
+    console.error("Budget generation error:", error);
+    return null;
   }
 };

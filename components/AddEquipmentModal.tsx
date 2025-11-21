@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Sparkles, Server, CheckSquare, Square, ChevronRight } from 'lucide-react';
+import { Sparkles, Server, CheckSquare, Square, Layers } from 'lucide-react';
 import { generatePointsForEquipment } from '../services/geminiService';
 import { Equipment } from '../types';
 
@@ -36,14 +36,16 @@ const PREDEFINED_CONFIG: CategoryDef[] = [
         options: [
           'Recuperação de Calor (Roda)',
           'Recuperação de Calor (Baterias)',
+          'Recuperação de Calor (Plate)',
           'Bateria de Aquecimento (Água)',
           'Bateria de Aquecimento (Elétrica)',
           'Bateria de Arrefecimento',
-          'Humidificação',
+          'Humidificação (Vapor/Água)',
           'Ventiladores com VEX (Velocidade Variável)',
           'Monitorização de Filtros (Pressostatos)',
-          'Sondas de Qualidade de Ar (CO2)',
-          'Registos de Corte (Comportas)'
+          'Sondas de Qualidade de Ar (CO2/VOC)',
+          'Registos de Corte (Comportas Motorizadas)',
+          'Bypass de Recuperador'
         ]
       },
       {
@@ -57,7 +59,9 @@ const PREDEFINED_CONFIG: CategoryDef[] = [
           'Válvula On/Off',
           'Velocidade do Ventilador (3 Estágios)',
           'Velocidade do Ventilador (EC/0-10V)',
-          'Sonda de Condensados'
+          'Sonda de Condensados',
+          'Sonda de Retorno de Ar',
+          'Contacto de Janela'
         ]
       },
       {
@@ -69,7 +73,85 @@ const PREDEFINED_CONFIG: CategoryDef[] = [
           'Monitorização de Energia Elétrica',
           'Interface de Comunicação (Modbus/BACnet)',
           'Controlo de Setpoint Remoto',
-          'Estado de Compressores'
+          'Estado de Compressores',
+          'Válvula de Corte Motorizada',
+          'Fluxostato de Segurança',
+          'Comutação Verão/Inverno'
+        ]
+      },
+      {
+        id: 'cooling_tower',
+        label: 'Torre de Arrefecimento',
+        defaultCategory: 'HVAC',
+        options: [
+          'Ventilador com VEX (Variador)',
+          'Válvula de Bypass (3 Vias)',
+          'Resistência de Tabuleiro (Anti-gelo)',
+          'Controlo de Nível da Bacia',
+          'Bomba de Spray',
+          'Tratamento de Água Integrado'
+        ]
+      },
+      {
+        id: 'rooftop',
+        label: 'Unidade Rooftop',
+        defaultCategory: 'HVAC',
+        options: [
+          'Free-Cooling',
+          'Queimador a Gás Incorporado',
+          'Recuperação de Energia',
+          'Interface Modbus/BACnet',
+          'Sonda de CO2 Ambiente',
+          'Deteção de Fumos na Conduta'
+        ]
+      },
+      {
+        id: 'vrf',
+        label: 'Sistema VRF (Unid. Exterior + Interiores)',
+        defaultCategory: 'HVAC',
+        options: [
+          'Gateway Centralizado (BACnet/Modbus)',
+          'Controlo Individual de Setpoint',
+          'Bloqueio de Comandos Locais',
+          'Medição de Energia por Unidade',
+          'Alarmes de Erro Específicos',
+          'Unidades de Recuperação de Calor'
+        ]
+      },
+      {
+        id: 'split',
+        label: 'Split / Multi-Split (Expansão Direta)',
+        defaultCategory: 'HVAC',
+        options: [
+          'Interface Wi-Fi/Modbus',
+          'Contacto Seco (Marcha/Paragem)',
+          'Feedback de Funcionamento',
+          'Alarme de Falha Geral'
+        ]
+      },
+      {
+        id: 'vav',
+        label: 'Caixa VAV (Volume de Ar Variável)',
+        defaultCategory: 'HVAC',
+        options: [
+          'Bateria de Reaquecimento (Água)',
+          'Bateria de Reaquecimento (Elétrica)',
+          'Sonda de CO2 para Controlo',
+          'Sensor de Presença',
+          'Feedback de Posição da Comporta'
+        ]
+      },
+      {
+        id: 'precision_ac',
+        label: 'Ar Condicionado de Precisão (CRAC)',
+        defaultCategory: 'HVAC',
+        options: [
+          'Controlo de Humidade (Humidificação/Desumidificação)',
+          'Detetor de Fugas de Água',
+          'Interface SNMP/Modbus',
+          'Dupla Fonte de Alimentação (ATS)',
+          'Monitorização de Filtros Sujos',
+          'Sondas de Temperatura Rack'
         ]
       },
       {
@@ -81,19 +163,56 @@ const PREDEFINED_CONFIG: CategoryDef[] = [
           'Bombas de Circulação',
           'Válvula de Corte de Gás',
           'Deteção de Gás',
-          'Monitorização de Temperatura de Fumos'
+          'Monitorização de Temperatura de Fumos',
+          'Controlo em Cascata'
+        ]
+      },
+      {
+        id: 'heat_exchanger',
+        label: 'Permutador de Calor (Placas)',
+        defaultCategory: 'HVAC',
+        options: [
+          'Válvula de Controlo no Primário',
+          'Sondas de Temperatura (4x - Entradas/Saídas)',
+          'Medidor de Energia Térmica',
+          'Bombas de Circulação Secundário',
+          'Controlo de Pressão Diferencial'
         ]
       },
       {
         id: 'extraction',
-        label: 'Ventilação / Extração',
+        label: 'Ventilação / Extração Geral',
         defaultCategory: 'HVAC',
         options: [
           'Ventilador de Extração WC',
-          'Ventilador de Desenfumagem (Segurança)',
           'VEX (Variador de Frequência)',
           'Monitorização de Pressão',
-          'Interligação com CDI (Incêndio)'
+          'Relógio Horário'
+        ]
+      },
+      {
+        id: 'garage_vent',
+        label: 'Ventilação de Garagens / Desenfumagem',
+        defaultCategory: 'HVAC',
+        options: [
+          'Ventiladores de Impulsão (Jet Fans)',
+          'Ventiladores de Extração (400ºC/2h)',
+          'Detetores de CO (Monóxido de Carbono)',
+          'Detetores de NO2 (Dióxido de Azoto)',
+          'Painel de Bombeiros (Prioridade)',
+          'Comportas Corta-Fogo Motorizadas'
+        ]
+      },
+      {
+        id: 'air_curtain',
+        label: 'Cortina de Ar',
+        defaultCategory: 'HVAC',
+        options: [
+          'Contacto de Porta',
+          'Estágios de Aquecimento Elétrico',
+          'Válvula de Aquecimento (Água)',
+          'Velocidade do Ventilador',
+          'Termóstato de Segurança'
         ]
       }
     ]
@@ -110,7 +229,38 @@ const PREDEFINED_CONFIG: CategoryDef[] = [
           'Disjuntor Geral (Estado/Trip)',
           'Analisador de Rede (Modbus)',
           'Monitorização de Circuitos Específicos',
-          'Sinalização de Sobretensões'
+          'Sinalização de Sobretensões (SPD)',
+          'Presença de Tensão nas Fases',
+          'Temperatura do Quadro'
+        ]
+      },
+      {
+        id: 'lighting',
+        label: 'Controlo de Iluminação',
+        defaultCategory: 'Electrical',
+        options: [
+          'Gateway DALI',
+          'Gateway KNX',
+          'Sensores de Luminosidade/Presença',
+          'Controlo Horário',
+          'Comando de Zonas (On/Off)',
+          'Dimerização (0-10V)',
+          'Iluminação de Emergência (Monitorização)'
+        ]
+      },
+      {
+        id: 'sun_protection',
+        label: 'Proteções Solares (Estores/Persianas)',
+        defaultCategory: 'Electrical',
+        options: [
+          'Motor Sobe/Desce (2 saídas)',
+          'Posicionamento % (0-10V)',
+          'Controlo de Lamelas (Tilt)',
+          'Interface KNX',
+          'Interface SMI',
+          'Alarme de Vento (Proteção)',
+          'Sensor de Luminosidade Fachada',
+          'Controlo Local (Botão)'
         ]
       },
       {
@@ -121,7 +271,9 @@ const PREDEFINED_CONFIG: CategoryDef[] = [
           'Estado das Baterias',
           'Modo Bypass',
           'Interface de Comunicação SNMP/Modbus',
-          'Alarme Geral'
+          'Alarme Geral',
+          'Tempo de Autonomia Restante',
+          'Temperatura Ambiente'
         ]
       },
       {
@@ -133,7 +285,55 @@ const PREDEFINED_CONFIG: CategoryDef[] = [
           'Temperatura do Motor',
           'Tensão de Bateria de Arranque',
           'Controlo de ATS (Rede/Gerador)',
-          'Interface Modbus'
+          'Interface Modbus',
+          'Alarme de Falha de Arranque',
+          'Resistência de Pré-Aquecimento'
+        ]
+      },
+      {
+        id: 'capacitor_bank',
+        label: 'Bateria de Condensadores',
+        defaultCategory: 'Electrical',
+        options: [
+          'Alarme Geral',
+          'Fator de Potência Atual',
+          'Temperatura Interna',
+          'Estágios Ativos',
+          'Harmónicas (THD)'
+        ]
+      },
+      {
+        id: 'transformer',
+        label: 'Transformador',
+        defaultCategory: 'Electrical',
+        options: [
+          'Alarme de Temperatura (DGPT2/Termístor)',
+          'Alarme de Gás/Pressão',
+          'Ventilação Forçada',
+          'Nível de Óleo'
+        ]
+      },
+      {
+        id: 'pv_system',
+        label: 'Sistema Fotovoltaico',
+        defaultCategory: 'Electrical',
+        options: [
+          'Produção de Energia Ativa (kWh)',
+          'Potência Instantânea (kW)',
+          'Estado dos Inversores (Modbus)',
+          'Sensor de Irradiação Solar',
+          'Temperatura dos Módulos'
+        ]
+      },
+      {
+        id: 'ev_charger',
+        label: 'Carregamento Veículos Elétricos',
+        defaultCategory: 'Electrical',
+        options: [
+          'Estado dos Carregadores',
+          'Consumo por Posto',
+          'Gestão de Carga (Load Shedding)',
+          'Alarme de Proteção Diferencial'
         ]
       }
     ]
@@ -144,13 +344,40 @@ const PREDEFINED_CONFIG: CategoryDef[] = [
     equipment: [
       {
         id: 'pumps',
-        label: 'Grupo de Bombagem (Águas)',
+        label: 'Grupo de Bombagem (Águas Limpas)',
         defaultCategory: 'Plumbing',
         options: [
-          'Bombas de Velocidade Variável',
+          'Bombas de Velocidade Variável (VEX)',
           'Alternância de Bombas',
           'Pressostato de Falta de Água',
-          'Transdutor de Pressão (4-20mA)'
+          'Transdutor de Pressão (4-20mA)',
+          'Válvula de Enchimento Automático',
+          'Contador de Água Geral'
+        ]
+      },
+      {
+        id: 'sewage',
+        label: 'Estação Elevatória (Esgotos)',
+        defaultCategory: 'Plumbing',
+        options: [
+          'Bombas Submersíveis (1 ou 2)',
+          'Bóias de Nível (Min, Arranque, Max, Alarme)',
+          'Sonda de Nível Ultrassónica/Hidrostática',
+          'Válvula de Retenção',
+          'Alarme de Nível Muito Alto',
+          'Triturador'
+        ]
+      },
+      {
+        id: 'rainwater',
+        label: 'Aproveitamento de Águas Pluviais',
+        defaultCategory: 'Plumbing',
+        options: [
+          'Nível do Reservatório Pluvial',
+          'Bomba de Trasfega',
+          'Filtro Automático',
+          'Comutação Água Rede/Pluvial',
+          'Contador de Água Recuperada'
         ]
       },
       {
@@ -159,9 +386,61 @@ const PREDEFINED_CONFIG: CategoryDef[] = [
         defaultCategory: 'Plumbing',
         options: [
           'Depósito de Acumulação',
-          'Bomba de Circulação AQS',
+          'Bomba de Circulação AQS (Retorno)',
           'Resistência Elétrica de Apoio',
-          'Controlo de Legionella'
+          'Controlo de Legionella (Ciclo Térmico)',
+          'Válvula Misturadora Termostática',
+          'Ânodo de Magnésio Eletrónico'
+        ]
+      },
+      {
+        id: 'fire_fighting',
+        label: 'Central de Bombagem de Incêndio (CBI)',
+        defaultCategory: 'Plumbing',
+        options: [
+          'Bomba Principal Elétrica',
+          'Bomba Principal Diesel',
+          'Bomba Jockey',
+          'Estado das Válvulas de Corte',
+          'Nível do Reservatório de Incêndio',
+          'Alarmes de Pressão da Rede',
+          'Sinal "Bomba em Funcionamento"'
+        ]
+      },
+      {
+        id: 'irrigation',
+        label: 'Sistema de Rega',
+        defaultCategory: 'Plumbing',
+        options: [
+          'Programador de Rega',
+          'Eletroválvulas de Zona',
+          'Sensor de Chuva / Humidade Solo',
+          'Contador de Água de Rega'
+        ]
+      },
+      {
+        id: 'solar',
+        label: 'Solar Térmico',
+        defaultCategory: 'Plumbing',
+        options: [
+          'Temperatura dos Coletores',
+          'Temperatura do Depósito',
+          'Bomba do Primário Solar',
+          'Dissipador de Calor (Aerotermo)',
+          'Contador de Energia Térmica'
+        ]
+      },
+      {
+        id: 'pool',
+        label: 'Tratamento de Piscina',
+        defaultCategory: 'Plumbing',
+        options: [
+          'Bomba de Circulação/Filtração',
+          'Leitura de pH',
+          'Leitura de Cloro/Redox',
+          'Temperatura da Água',
+          'Alarme de Pressão (Filtro Sujo)',
+          'Dosagem de Produtos Químicos'
         ]
       }
     ]
@@ -172,6 +451,7 @@ const AddEquipmentModal: React.FC<AddEquipmentModalProps> = ({ isOpen, onClose, 
   const [selectedCategoryIdx, setSelectedCategoryIdx] = useState<number>(0);
   const [selectedEquipmentIdx, setSelectedEquipmentIdx] = useState<number>(0);
   const [tag, setTag] = useState('');
+  const [quantity, setQuantity] = useState<number>(1);
   const [selectedOptions, setSelectedOptions] = useState<Set<string>>(new Set());
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -218,6 +498,7 @@ const AddEquipmentModal: React.FC<AddEquipmentModalProps> = ({ isOpen, onClose, 
         name: fullName,
         category: currentCategory.id,
         description: optionsList,
+        quantity: Math.max(1, quantity),
         points
       };
 
@@ -232,6 +513,7 @@ const AddEquipmentModal: React.FC<AddEquipmentModalProps> = ({ isOpen, onClose, 
 
   const resetForm = () => {
     setTag('');
+    setQuantity(1);
     setSelectedCategoryIdx(0);
     setSelectedEquipmentIdx(0);
     setSelectedOptions(new Set());
@@ -297,24 +579,49 @@ const AddEquipmentModal: React.FC<AddEquipmentModalProps> = ({ isOpen, onClose, 
                   </div>
                 </div>
 
-                {/* Step 2: Identification */}
-                <div>
-                  <label htmlFor="tag" className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                    3. Identificação (Tag / Localização)
-                  </label>
-                  <div className="flex rounded-md shadow-sm">
-                    <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
-                      {currentEquipment.label}
-                    </span>
-                    <input
-                      type="text"
-                      id="tag"
-                      className="flex-1 min-w-0 block w-full px-3 py-2 rounded-none rounded-r-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm border-gray-300 border"
-                      placeholder="Ex: 01 - Piso 2, Sala Reuniões"
-                      value={tag}
-                      onChange={(e) => setTag(e.target.value)}
-                      disabled={isGenerating}
-                    />
+                {/* Step 2: Identification & Quantity */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="md:col-span-3">
+                    <label htmlFor="tag" className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                      3. Identificação (Tag / Local)
+                    </label>
+                    <div className="flex rounded-md shadow-sm">
+                      <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm truncate max-w-[120px]">
+                        {currentEquipment.label}
+                      </span>
+                      <input
+                        type="text"
+                        id="tag"
+                        className="flex-1 min-w-0 block w-full px-3 py-2 rounded-none rounded-r-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm border-gray-300 border"
+                        placeholder="Ex: Piso 2, Sala Reuniões"
+                        value={tag}
+                        onChange={(e) => setTag(e.target.value)}
+                        disabled={isGenerating}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="quantity" className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                      Qtd.
+                    </label>
+                    <div className="flex rounded-md shadow-sm">
+                      <div className="relative flex items-stretch flex-grow focus-within:z-10">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <Layers className="h-4 w-4 text-gray-400" />
+                        </div>
+                        <input
+                          type="number"
+                          name="quantity"
+                          id="quantity"
+                          min="1"
+                          className="focus:ring-blue-500 focus:border-blue-500 block w-full rounded-md pl-10 sm:text-sm border-gray-300 border py-2"
+                          value={quantity}
+                          onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                          disabled={isGenerating}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 

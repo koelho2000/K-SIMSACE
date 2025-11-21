@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Equipment } from '../types';
-import { Plus, Server, Trash2, Cpu } from 'lucide-react';
+import { Plus, Server, Trash2, Cpu, PieChart, FileText, Calculator, Copy, Settings, Download, Upload, FolderCog } from 'lucide-react';
 
 interface SidebarProps {
   equipmentList: Equipment[];
@@ -8,6 +8,13 @@ interface SidebarProps {
   onSelectEquipment: (id: string) => void;
   onAddEquipment: () => void;
   onDeleteEquipment: (id: string) => void;
+  onDuplicateEquipment: (id: string) => void;
+  onOpenSummary: () => void;
+  onOpenReport: () => void;
+  onOpenBudget: () => void;
+  onOpenSettings: () => void;
+  onExport: () => void;
+  onImport: (file: File) => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -16,17 +23,68 @@ const Sidebar: React.FC<SidebarProps> = ({
   onSelectEquipment,
   onAddEquipment,
   onDeleteEquipment,
+  onDuplicateEquipment,
+  onOpenSummary,
+  onOpenReport,
+  onOpenBudget,
+  onOpenSettings,
+  onExport,
+  onImport
 }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      onImport(e.target.files[0]);
+      e.target.value = ''; // Reset
+    }
+  };
+
   return (
-    <div className="w-full md:w-80 bg-white border-r border-gray-200 flex flex-col h-full">
+    <div className="w-full md:w-80 bg-white border-r border-gray-200 flex flex-col h-full print:hidden">
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center gap-2 mb-2">
-          <div className="p-2 bg-blue-600 rounded-lg">
+          <div className="p-2 bg-blue-700 rounded-lg shadow-md">
             <Cpu className="w-6 h-6 text-white" />
           </div>
-          <h1 className="text-xl font-bold text-gray-900">GTC Studio</h1>
+          <h1 className="text-xl font-bold text-gray-900">K-SIMSACE</h1>
         </div>
-        <p className="text-xs text-gray-500">Gestão de Pontos Técnicos</p>
+        <p className="text-xs text-gray-500">Smart Integration & Management System</p>
+      </div>
+
+      {/* Project Actions */}
+      <div className="p-4 border-b border-gray-200 grid grid-cols-3 gap-2">
+         <button 
+           onClick={onOpenSettings}
+           className="flex flex-col items-center justify-center p-2 rounded hover:bg-gray-100 text-gray-600 hover:text-blue-600 transition-colors"
+           title="Definições do Projeto"
+         >
+           <Settings className="w-5 h-5 mb-1" />
+           <span className="text-[10px] font-medium">Projeto</span>
+         </button>
+         <button 
+           onClick={onExport}
+           className="flex flex-col items-center justify-center p-2 rounded hover:bg-gray-100 text-gray-600 hover:text-blue-600 transition-colors"
+           title="Exportar JSON"
+         >
+           <Download className="w-5 h-5 mb-1" />
+           <span className="text-[10px] font-medium">Exportar</span>
+         </button>
+         <button 
+           onClick={() => fileInputRef.current?.click()}
+           className="flex flex-col items-center justify-center p-2 rounded hover:bg-gray-100 text-gray-600 hover:text-blue-600 transition-colors"
+           title="Importar JSON"
+         >
+           <Upload className="w-5 h-5 mb-1" />
+           <span className="text-[10px] font-medium">Importar</span>
+         </button>
+         <input 
+            type="file" 
+            ref={fileInputRef}
+            className="hidden"
+            accept=".json"
+            onChange={handleFileChange}
+         />
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-2">
@@ -65,32 +123,72 @@ const Sidebar: React.FC<SidebarProps> = ({
               <div className="flex items-center gap-3 overflow-hidden">
                 <Server className={`w-5 h-5 flex-shrink-0 ${selectedEquipmentId === eq.id ? 'text-blue-600' : 'text-gray-400'}`} />
                 <div className="flex flex-col overflow-hidden">
-                  <span className={`text-sm font-medium truncate ${selectedEquipmentId === eq.id ? 'text-blue-900' : 'text-gray-700'}`}>
-                    {eq.name}
-                  </span>
+                  <div className="flex items-center gap-2">
+                     {(eq.quantity > 1) && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-800 border border-gray-200">
+                          {eq.quantity}x
+                        </span>
+                     )}
+                    <span className={`text-sm font-medium truncate ${selectedEquipmentId === eq.id ? 'text-blue-900' : 'text-gray-700'}`}>
+                      {eq.name}
+                    </span>
+                  </div>
                   <span className="text-xs text-gray-400 truncate">
-                    {eq.points.length} pontos
+                    {eq.points.length} pontos {eq.quantity > 1 && `(x${eq.quantity} = ${eq.points.length * eq.quantity})`}
                   </span>
                 </div>
               </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDeleteEquipment(eq.id);
-                }}
-                className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-all"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              
+              <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                 <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDuplicateEquipment(eq.id);
+                  }}
+                  className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all mr-1"
+                  title="Duplicar"
+                >
+                  <Copy className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteEquipment(eq.id);
+                  }}
+                  className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-all"
+                  title="Eliminar"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           ))
         )}
       </div>
       
-      <div className="p-4 border-t border-gray-200 bg-gray-50">
-        <p className="text-xs text-center text-gray-400">
-          Powered by Gemini 2.5 Flash
-        </p>
+      {/* Bottom Actions */}
+      <div className="p-4 border-t border-gray-200 bg-gray-50 space-y-2">
+        <button 
+          onClick={onOpenSummary}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 shadow-sm transition-colors"
+        >
+          <PieChart className="w-4 h-4 text-blue-600" />
+          Resumo do Projeto
+        </button>
+        <button 
+          onClick={onOpenReport}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 shadow-sm transition-colors"
+        >
+          <FileText className="w-4 h-4 text-blue-600" />
+          Relatório Técnico
+        </button>
+        <button 
+          onClick={onOpenBudget}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-emerald-600 to-teal-600 border border-transparent rounded-md hover:from-emerald-700 hover:to-teal-700 shadow-sm transition-all"
+        >
+          <Calculator className="w-4 h-4" />
+          Orçamento Detalhado
+        </button>
       </div>
     </div>
   );
