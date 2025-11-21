@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { Equipment, GtcPoint, PointType } from '../types';
-import { Download, Plus, Save, Zap, Sliders, Activity, Power, AlertCircle, FileText } from 'lucide-react';
+import { Download, Plus, Save, Zap, Sliders, Activity, Power, AlertCircle, FileText, Edit2 } from 'lucide-react';
 import { generatePointsForEquipment } from '../services/geminiService';
 
 interface PointListProps {
   equipment: Equipment;
   onUpdateEquipment: (updatedEquipment: Equipment) => void;
+  onEditEquipment: () => void;
 }
 
-const PointList: React.FC<PointListProps> = ({ equipment, onUpdateEquipment }) => {
+const PointList: React.FC<PointListProps> = ({ equipment, onUpdateEquipment, onEditEquipment }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [promptContext, setPromptContext] = useState('');
 
@@ -88,13 +89,29 @@ const PointList: React.FC<PointListProps> = ({ equipment, onUpdateEquipment }) =
       {/* Header */}
       <div className="px-8 py-6 border-b border-gray-200 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white sticky top-0 z-10">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">{equipment.name}</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-2xl font-bold text-gray-900">{equipment.name}</h2>
+            <button 
+              onClick={onEditEquipment}
+              className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+              title="Editar Equipamento"
+            >
+              <Edit2 className="w-5 h-5" />
+            </button>
+          </div>
           <p className="text-sm text-gray-500 flex items-center gap-2 mt-1">
             <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs font-medium border border-gray-200 uppercase">
               {equipment.category}
             </span>
+            {equipment.quantity > 1 && (
+               <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-medium border border-blue-100 uppercase">
+                  Qtd: {equipment.quantity}
+               </span>
+            )}
             <span className="text-gray-400">•</span>
-            <span>{equipment.points.length} Pontos</span>
+            <span>{equipment.points.length} Pontos Un.</span>
+            <span className="text-gray-400">•</span>
+            <span className="font-medium text-gray-700">Total: {equipment.points.length * equipment.quantity} Pontos</span>
           </p>
         </div>
         

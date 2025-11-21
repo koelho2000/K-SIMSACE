@@ -1,5 +1,6 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
-import { PointType, GtcPoint, Equipment, BudgetProposal } from "../types";
+import { PointType, GtcPoint, Equipment, BudgetProposal, EN15232Analysis, ProjectInfo } from "../types";
 
 const apiKey = process.env.API_KEY || '';
 const ai = new GoogleGenAI({ apiKey });
@@ -181,3 +182,110 @@ export const generateBudgetProposal = async (equipmentList: Equipment[]): Promis
     return null;
   }
 };
+
+export const analyzeProjectEN15232 = async (equipmentList: Equipment[], projectInfo?: ProjectInfo): Promise<EN15232Analysis | null> => {
+  if (!apiKey) return null;
+  if (equipmentList.length === 0) return null;
+
+  const projectData = JSON.stringify(equipmentList.map(e => ({
+    name: e.name,
+    qty: e.quantity,
+    points: e.points.map(p => `${p.name} (${p.type})`)
+  })));
+
+  const buildingDetails = `
+    Tipologia do Edifício: ${projectInfo?.buildingType || 'Não especificado (Assumir Escritórios Standard)'}
+    Área Estimada: ${projectInfo?.estimatedArea || 'N/A'} m2
+    Potência Térmica Estimada: ${projectInfo?.thermalPower || 'N/A'} kW
+  `;
+
+  const prompt = `
+    Realize uma AUDITORIA ESTRUTURADA e DETALHADA de Eficiência Energética baseada na norma EN 15232 (Energy Performance of Buildings - Impact of Building Automation, Controls and Building Management).
+
+    DADOS DO EDIFÍCIO (Crucial para a classificação):
+    ${buildingDetails}
+
+    DADOS DO PROJETO (Lista de Equipamentos e Pontos de Controlo):
+    ${projectData}
+
+    MATRIZ DE CLASSIFICAÇÃO EN 15232 (Referência):
+    - CLASS D: Non-energy efficient (Sem GTC ou controlo manual).
+    - CLASS C: Standard (Referência). Controlo básico, horários fixos.
+    - CLASS B: Advanced. Controlo por zona, comunicação entre sistemas, otimização TBM.
+    - CLASS A: High Energy Performance. TBM Total, Controlo "Demand Driven" (CO2, Presença), Interlocks, Manutenção Preditiva.
+
+    TAREFA:
+    1. Determine a Classe Global (A, B, C ou D) analisando se os pontos existentes permitem as funções exigidas para a Tipologia do Edifício.
+    2. Crie uma CHECKLIST DETALHADA verificando as seguintes funções obrigatórias da norma:
+       
+       GRUPO 1: AQUECIMENTO & AQS
+       - Controlo de Geração (Sequenciamento de caldeiras/bombas calor?)
+       - Controlo de Distribuição (Bombas com variador de velocidade - VEX?)
+       - Controlo de Emissão (Válvulas termostáticas ou controlo eletrónico por zona?)
+       
+       GRUPO 2: ARREFECIMENTO
+       - Interlock com Aquecimento (Evitar simultaneidade?)
+       - Controlo de Chillers/VRF (Modulação, Setpoints otimizados?)
+       
+       GRUPO 3: VENTILAÇÃO
+       - Controlo de Caudal (VAV, DCV baseado em CO2/Qualidade do Ar?)
+       - Recuperação de Calor (Existe e é monitorizada?)
+       - Free-Cooling (Controlo de registos/comportas exterior?)
+       
+       GRUPO 4: ILUMINAÇÃO
+       - Controlo de Ocupação (Sensores de presença?)
+       - Controlo de Luz Natural (Dimerização baseada em luminosidade?)
+       
+       GRUPO 5: PROTEÇÃO SOLAR
+       - Controlo Automático de Estores/Lamelas (Proteção térmica/encandeamento?)
+       
+       GRUPO 6: TBM & MONITORIZAÇÃO
+       - Capacidade de Deteção de Falhas (Alarmes?)
+       - Monitorização de Energia (Contadores, Analisadores de rede?)
+    
+    Para cada item, verifique se os pontos GTC listados permitem a função.
+    - Se existem pontos suficientes -> COMPLIANT.
+    - Se existem alguns mas faltam sensores/atuadores chave -> PARTIAL.
+    - Se não há qualquer evidência -> NON_COMPLIANT.
+    
+    Retorne APENAS JSON.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: MODEL_ID,
+      contents: prompt,
+      config: {
+        systemInstruction: "Você é um Auditor Certificado CMVP e Especialista na Norma EN 15232. Seja rigoroso na análise técnica das funções de automação.",
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            projectClass: { type: Type.STRING, enum: ['A', 'B', 'C', 'D'] },
+            efficiencyScore: { type: Type.NUMBER, description: "Score de 0 a 100 indicando quão perto está da próxima classe" },
+            summary: { type: Type.STRING, description: "Resumo executivo focado na classificação global, justificando com base na tipologia." },
+            checklist: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  category: { type: Type.STRING, description: "Categoria da Norma (ex: 1. Aquecimento, 3. Ventilação, 6. TBM)" },
+                  function: { type: Type.STRING, description: "Função específica da EN 15232 avaliada" },
+                  status: { type: Type.STRING, enum: ['COMPLIANT', 'PARTIAL', 'NON_COMPLIANT'] },
+                  observation: { type: Type.STRING, description: "Evidência encontrada nos pontos ou o que está em falta." },
+                  impact: { type: Type.STRING, enum: ['HIGH', 'MEDIUM', 'LOW'] }
+                }
+              }
+            },
+            recommendations: { type: Type.ARRAY, items: { type: Type.STRING } }
+          }
+        }
+      }
+    });
+
+    return JSON.parse(response.text || "{}");
+  } catch (error) {
+    console.error("EN15232 Analysis Error:", error);
+    return null;
+  }
+}

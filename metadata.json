@@ -1,5 +1,5 @@
 {
-  "name": "GTC Data Point Generator",
+  "name": "K-SIMSACE",
   "description": "Gerador inteligente de listas de pontos para Gestão Técnica Centralizada (BMS) utilizando IA para sugestão de sinais e IOs.",
   "requestFramePermissions": []
 }

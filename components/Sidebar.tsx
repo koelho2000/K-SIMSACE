@@ -1,6 +1,7 @@
+
 import React, { useRef } from 'react';
 import { Equipment } from '../types';
-import { Plus, Server, Trash2, Cpu, PieChart, FileText, Calculator, Copy, Settings, Download, Upload, FolderCog } from 'lucide-react';
+import { Plus, Server, Trash2, Cpu, PieChart, FileText, Calculator, Copy, Settings, Download, Upload, Edit2, FilePlus, ShieldCheck } from 'lucide-react';
 
 interface SidebarProps {
   equipmentList: Equipment[];
@@ -9,12 +10,15 @@ interface SidebarProps {
   onAddEquipment: () => void;
   onDeleteEquipment: (id: string) => void;
   onDuplicateEquipment: (id: string) => void;
+  onEditEquipment: (id: string) => void;
   onOpenSummary: () => void;
   onOpenReport: () => void;
   onOpenBudget: () => void;
+  onOpenEN15232: () => void;
   onOpenSettings: () => void;
   onExport: () => void;
   onImport: (file: File) => void;
+  onNewProject: () => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -24,12 +28,15 @@ const Sidebar: React.FC<SidebarProps> = ({
   onAddEquipment,
   onDeleteEquipment,
   onDuplicateEquipment,
+  onEditEquipment,
   onOpenSummary,
   onOpenReport,
   onOpenBudget,
+  onOpenEN15232,
   onOpenSettings,
   onExport,
-  onImport
+  onImport,
+  onNewProject
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -53,7 +60,15 @@ const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Project Actions */}
-      <div className="p-4 border-b border-gray-200 grid grid-cols-3 gap-2">
+      <div className="p-4 border-b border-gray-200 grid grid-cols-4 gap-2">
+         <button 
+           onClick={onNewProject}
+           className="flex flex-col items-center justify-center p-2 rounded hover:bg-red-50 text-gray-600 hover:text-red-600 transition-colors"
+           title="Novo Projeto (Apagar Tudo)"
+         >
+           <FilePlus className="w-5 h-5 mb-1" />
+           <span className="text-[10px] font-medium">Novo</span>
+         </button>
          <button 
            onClick={onOpenSettings}
            className="flex flex-col items-center justify-center p-2 rounded hover:bg-gray-100 text-gray-600 hover:text-blue-600 transition-colors"
@@ -134,12 +149,22 @@ const Sidebar: React.FC<SidebarProps> = ({
                     </span>
                   </div>
                   <span className="text-xs text-gray-400 truncate">
-                    {eq.points.length} pontos {eq.quantity > 1 && `(x${eq.quantity} = ${eq.points.length * eq.quantity})`}
+                    {eq.points.length} pontos {eq.quantity > 1 && `(Total: ${eq.points.length * eq.quantity})`}
                   </span>
                 </div>
               </div>
               
               <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEditEquipment(eq.id);
+                  }}
+                  className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all mr-1"
+                  title="Editar"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
                  <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -168,26 +193,35 @@ const Sidebar: React.FC<SidebarProps> = ({
       
       {/* Bottom Actions */}
       <div className="p-4 border-t border-gray-200 bg-gray-50 space-y-2">
-        <button 
-          onClick={onOpenSummary}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 shadow-sm transition-colors"
+         <button 
+          onClick={onOpenEN15232}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-emerald-800 bg-emerald-100 border border-emerald-200 rounded-md hover:bg-emerald-200 shadow-sm transition-colors"
         >
-          <PieChart className="w-4 h-4 text-blue-600" />
-          Resumo do Projeto
+          <ShieldCheck className="w-4 h-4" />
+          Verificação EN 15232
         </button>
-        <button 
-          onClick={onOpenReport}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 shadow-sm transition-colors"
-        >
-          <FileText className="w-4 h-4 text-blue-600" />
-          Relatório Técnico
-        </button>
+        <div className="grid grid-cols-2 gap-2">
+          <button 
+            onClick={onOpenSummary}
+            className="flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 shadow-sm transition-colors"
+          >
+            <PieChart className="w-3 h-3 text-blue-600" />
+            Resumo
+          </button>
+          <button 
+            onClick={onOpenReport}
+            className="flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 shadow-sm transition-colors"
+          >
+            <FileText className="w-3 h-3 text-blue-600" />
+            Relatório
+          </button>
+        </div>
         <button 
           onClick={onOpenBudget}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-emerald-600 to-teal-600 border border-transparent rounded-md hover:from-emerald-700 hover:to-teal-700 shadow-sm transition-all"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-indigo-600 border border-transparent rounded-md hover:from-blue-700 hover:to-indigo-700 shadow-sm transition-all"
         >
           <Calculator className="w-4 h-4" />
-          Orçamento Detalhado
+          Orçamento Estimativo
         </button>
       </div>
     </div>

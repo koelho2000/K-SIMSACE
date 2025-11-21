@@ -1,12 +1,16 @@
+
 import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import PointList from './components/PointList';
 import EmptyState from './components/EmptyState';
 import AddEquipmentModal from './components/AddEquipmentModal';
+import EditEquipmentModal from './components/EditEquipmentModal';
 import SummaryModal from './components/SummaryModal';
 import ReportPreview from './components/ReportPreview';
 import BudgetModal from './components/BudgetModal';
 import ProjectSettingsModal from './components/ProjectSettingsModal';
+import EN15232Report from './components/EN15232Report';
+import LandingPage from './components/LandingPage';
 import { Equipment, ProjectInfo } from './types';
 
 const DEFAULT_PROJECT_INFO: ProjectInfo = {
@@ -18,15 +22,23 @@ const DEFAULT_PROJECT_INFO: ProjectInfo = {
 };
 
 const App: React.FC = () => {
+  const [showLanding, setShowLanding] = useState(true);
   const [equipmentList, setEquipmentList] = useState<Equipment[]>([]);
   const [projectInfo, setProjectInfo] = useState<ProjectInfo>(DEFAULT_PROJECT_INFO);
   
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<string | null>(null);
+  
+  // Modals
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [isBudgetOpen, setIsBudgetOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isEN15232Open, setIsEN15232Open] = useState(false);
+
+  // Equipment being edited
+  const [equipmentToEdit, setEquipmentToEdit] = useState<Equipment | null>(null);
 
   // Load from local storage on mount
   useEffect(() => {
@@ -36,7 +48,6 @@ const App: React.FC = () => {
     if (savedEq) {
       try {
         const parsed = JSON.parse(savedEq);
-        // Migrate old data to have quantity
         const hydrated = parsed.map((e: any) => ({
           ...e,
           quantity: e.quantity || 1
@@ -88,7 +99,6 @@ const App: React.FC = () => {
       ...eqToClone,
       id: crypto.randomUUID(),
       name: `${eqToClone.name} (Cópia)`,
-      // IMPORTANT: Clone points with new IDs to avoid React key conflicts and bugs
       points: eqToClone.points.map(p => ({
         ...p,
         id: crypto.randomUUID()
@@ -100,6 +110,38 @@ const App: React.FC = () => {
 
   const handleUpdateEquipment = (updatedEquipment: Equipment) => {
     setEquipmentList(prev => prev.map(e => e.id === updatedEquipment.id ? updatedEquipment : e));
+  };
+
+  const openEditModal = (id: string) => {
+    const eq = equipmentList.find(e => e.id === id);
+    if (eq) {
+      setEquipmentToEdit(eq);
+      setIsEditModalOpen(true);
+    }
+  };
+
+  const handleSaveEquipmentChanges = (id: string, updates: Partial<Equipment>) => {
+    setEquipmentList(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
+  };
+
+  const handleNewProject = () => {
+    if (window.confirm('ATENÇÃO: Esta ação irá apagar todos os equipamentos e dados do projeto atual. Deseja começar um novo projeto do zero?')) {
+      // Reset State
+      setEquipmentList([]);
+      setProjectInfo(DEFAULT_PROJECT_INFO);
+      setSelectedEquipmentId(null);
+      
+      // Close other modals
+      setIsAddModalOpen(false);
+      setIsEditModalOpen(false);
+      setIsSummaryOpen(false);
+      setIsReportOpen(false);
+      setIsBudgetOpen(false);
+      setIsEN15232Open(false);
+
+      // Open Settings Modal to let user input new project details
+      setIsSettingsOpen(true);
+    }
   };
 
   const handleExportProject = () => {
@@ -150,6 +192,10 @@ const App: React.FC = () => {
 
   const selectedEquipment = equipmentList.find(e => e.id === selectedEquipmentId);
 
+  if (showLanding) {
+    return <LandingPage onEnter={() => setShowLanding(false)} />;
+  }
+
   return (
     <div className="flex h-screen bg-gray-100 text-gray-900 font-sans overflow-hidden">
       <Sidebar 
@@ -159,12 +205,15 @@ const App: React.FC = () => {
         onAddEquipment={() => setIsAddModalOpen(true)}
         onDeleteEquipment={handleDeleteEquipment}
         onDuplicateEquipment={handleDuplicateEquipment}
+        onEditEquipment={openEditModal}
         onOpenSummary={() => setIsSummaryOpen(true)}
         onOpenReport={() => setIsReportOpen(true)}
         onOpenBudget={() => setIsBudgetOpen(true)}
+        onOpenEN15232={() => setIsEN15232Open(true)}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onExport={handleExportProject}
         onImport={handleImportProject}
+        onNewProject={handleNewProject}
       />
       
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
@@ -172,6 +221,7 @@ const App: React.FC = () => {
           <PointList 
             equipment={selectedEquipment} 
             onUpdateEquipment={handleUpdateEquipment}
+            onEditEquipment={() => openEditModal(selectedEquipment.id)}
           />
         ) : (
           <EmptyState 
@@ -185,6 +235,13 @@ const App: React.FC = () => {
         isOpen={isAddModalOpen} 
         onClose={() => setIsAddModalOpen(false)} 
         onAdd={handleAddEquipment}
+      />
+
+      <EditEquipmentModal 
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        equipment={equipmentToEdit}
+        onSave={handleSaveEquipmentChanges}
       />
 
       <SummaryModal
@@ -205,6 +262,14 @@ const App: React.FC = () => {
         isOpen={isBudgetOpen}
         onClose={() => setIsBudgetOpen(false)}
         equipmentList={equipmentList}
+      />
+
+      <EN15232Report 
+        isOpen={isEN15232Open}
+        onClose={() => setIsEN15232Open(false)}
+        equipmentList={equipmentList}
+        projectName={projectInfo.projectName}
+        projectInfo={projectInfo}
       />
 
       <ProjectSettingsModal

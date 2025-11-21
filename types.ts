@@ -1,3 +1,4 @@
+
 export enum PointType {
   DI = 'DI', // Digital Input
   DO = 'DO', // Digital Output
@@ -30,6 +31,10 @@ export interface ProjectInfo {
   clientName: string;
   technicianName: string;
   technicianCompany: string;
+  // New Building Data
+  buildingType?: string; // e.g., Office, Hotel, Hospital, School, Residential
+  estimatedArea?: string; // in m2
+  thermalPower?: string; // in kW
 }
 
 export interface GenerationResponse {
@@ -51,4 +56,23 @@ export interface BudgetProposal {
   currency: string;
   total: number;
   assumptions: string[]; // Notes about the budget
+}
+
+// EN15232 Types
+export type EN15232Class = 'A' | 'B' | 'C' | 'D';
+
+export interface EN15232ChecklistItem {
+  category: string; // e.g. "1. Heating Control", "2. Ventilation"
+  function: string; // e.g., "Controlo de Aquecimento"
+  status: 'COMPLIANT' | 'PARTIAL' | 'NON_COMPLIANT';
+  observation: string;
+  impact: 'HIGH' | 'MEDIUM' | 'LOW';
+}
+
+export interface EN15232Analysis {
+  projectClass: EN15232Class;
+  efficiencyScore: number; // 0 to 100
+  summary: string;
+  checklist: EN15232ChecklistItem[];
+  recommendations: string[];
 }

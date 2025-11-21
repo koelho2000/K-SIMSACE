@@ -62,14 +62,15 @@ const SummaryModal: React.FC<SummaryModalProps> = ({ isOpen, onClose, equipmentL
             </button>
           </div>
 
+          {/* Top Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div className="bg-blue-50 rounded-xl p-6 text-center border border-blue-100">
               <span className="block text-4xl font-bold text-blue-600 mb-2">{equipmentList.length}</span>
-              <span className="text-sm font-medium text-blue-900 uppercase tracking-wide">Tipos de Equipamento</span>
+              <span className="text-sm font-medium text-blue-900 uppercase tracking-wide">Linhas de Equipamento</span>
             </div>
             <div className="bg-indigo-50 rounded-xl p-6 text-center border border-indigo-100">
               <span className="block text-4xl font-bold text-indigo-600 mb-2">{stats.total}</span>
-              <span className="text-sm font-medium text-indigo-900 uppercase tracking-wide">Total de Pontos (com Qtd)</span>
+              <span className="text-sm font-medium text-indigo-900 uppercase tracking-wide">Total de Pontos</span>
             </div>
             <div className="bg-green-50 rounded-xl p-6 text-center border border-green-100">
               <span className="block text-4xl font-bold text-green-600 mb-2">{stats.totalPhysical}</span>
@@ -77,9 +78,9 @@ const SummaryModal: React.FC<SummaryModalProps> = ({ isOpen, onClose, equipmentL
             </div>
           </div>
 
-          <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Detalhe por Tipo de Ponto (Totalizado pela Quantidade)</h4>
+          <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Detalhe por Tipo de Ponto (Global)</h4>
           
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
             <div className="p-4 rounded-lg border border-green-200 bg-green-50 flex flex-col items-center">
               <Activity className="w-6 h-6 text-green-600 mb-2" />
               <span className="text-2xl font-bold text-green-700">{stats.di}</span>
@@ -111,7 +112,36 @@ const SummaryModal: React.FC<SummaryModalProps> = ({ isOpen, onClose, equipmentL
             </div>
           </div>
 
-          <div className="mt-8 pt-5 border-t border-gray-200">
+          {/* Breakdown Table */}
+          <div className="mb-6">
+             <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Detalhamento por Equipamento</h4>
+             <div className="border rounded-lg overflow-hidden">
+               <table className="min-w-full divide-y divide-gray-200">
+                 <thead className="bg-gray-50">
+                   <tr>
+                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Equipamento</th>
+                     <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Qtd</th>
+                     <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Pontos/Un</th>
+                     <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Total Pontos</th>
+                   </tr>
+                 </thead>
+                 <tbody className="bg-white divide-y divide-gray-200">
+                   {equipmentList.map(eq => (
+                     <tr key={eq.id} className="hover:bg-gray-50">
+                       <td className="px-4 py-2 text-sm text-gray-900">{eq.name}</td>
+                       <td className="px-4 py-2 text-sm text-gray-600 text-right">{eq.quantity}</td>
+                       <td className="px-4 py-2 text-sm text-gray-600 text-right">{eq.points.length}</td>
+                       <td className="px-4 py-2 text-sm font-bold text-blue-600 text-right">
+                         {eq.points.length * eq.quantity}
+                       </td>
+                     </tr>
+                   ))}
+                 </tbody>
+               </table>
+             </div>
+          </div>
+
+          <div className="mt-4 pt-4 border-t border-gray-200">
              <div className="rounded-md bg-yellow-50 p-4">
               <div className="flex">
                 <div className="flex-shrink-0">
@@ -121,7 +151,7 @@ const SummaryModal: React.FC<SummaryModalProps> = ({ isOpen, onClose, equipmentL
                   <h3 className="text-sm font-medium text-yellow-800">Nota Técnica</h3>
                   <div className="mt-2 text-sm text-yellow-700">
                     <p>
-                      Os totais apresentados já contemplam a multiplicação pela quantidade de cada equipamento. Os pontos de "Integração/Soft" incluem variáveis de comunicação (Modbus, BACnet) e setpoints virtuais.
+                      Os totais globais apresentados acima são calculados automaticamente multiplicando o número de pontos de cada equipamento pela sua respetiva quantidade definida.
                     </p>
                   </div>
                 </div>

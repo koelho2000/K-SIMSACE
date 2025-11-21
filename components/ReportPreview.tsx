@@ -1,6 +1,7 @@
-import React from 'react';
+
+import React, { useMemo } from 'react';
 import { Equipment, PointType, ProjectInfo } from '../types';
-import { X, Printer, FileText, MapPin, User, Building } from 'lucide-react';
+import { X, Printer, FileText, MapPin, User, Building, Activity, Power, Zap, Sliders, Network } from 'lucide-react';
 
 interface ReportPreviewProps {
   equipmentList: Equipment[];
@@ -13,6 +14,40 @@ const ReportPreview: React.FC<ReportPreviewProps> = ({ equipmentList, projectInf
   const handlePrint = () => {
     window.print();
   };
+
+  // Calculate Global Stats
+  const stats = useMemo(() => {
+    let di = 0, do_ = 0, ai = 0, ao = 0, integrated = 0;
+    
+    equipmentList.forEach(eq => {
+      const qty = eq.quantity || 1;
+      
+      eq.points.forEach(p => {
+        // Logic to detect "integrated" points (virtual or via communication protocols)
+        const isComm = 
+          p.type === PointType.VIRTUAL || 
+          p.description.toLowerCase().includes('modbus') ||
+          p.description.toLowerCase().includes('bacnet') ||
+          p.description.toLowerCase().includes('comunicação') ||
+          p.signalType?.toLowerCase().includes('modbus') ||
+          p.signalType?.toLowerCase().includes('bacnet');
+
+        if (isComm) {
+          integrated += qty;
+        } else {
+          // Only count as physical if not integrated/virtual
+          if (p.type === PointType.DI) di += qty;
+          else if (p.type === PointType.DO) do_ += qty;
+          else if (p.type === PointType.AI) ai += qty;
+          else if (p.type === PointType.AO) ao += qty;
+        }
+      });
+    });
+
+    const totalPhysical = di + do_ + ai + ao;
+    
+    return { di, do: do_, ai, ao, integrated, totalPhysical, total: di + do_ + ai + ao + integrated };
+  }, [equipmentList]);
 
   return (
     <div className="fixed inset-0 z-[60] bg-gray-100 overflow-y-auto print:overflow-visible print:bg-white print:inset-auto print:h-auto print:z-auto">
@@ -92,9 +127,47 @@ const ReportPreview: React.FC<ReportPreviewProps> = ({ equipmentList, projectInf
           <div className="break-after-page"></div>
         </div>
 
-        {/* 2. INDEX PAGE */}
+        {/* 2. INDEX & SUMMARY PAGE */}
         <div className="min-h-[297mm] p-[20mm] print:break-before-page">
-          <h3 className="text-2xl font-bold text-gray-900 mb-8 pb-4 border-b-2 border-gray-100">Índice de Equipamentos</h3>
+          <h3 className="text-2xl font-bold text-gray-900 mb-6 pb-4 border-b-2 border-gray-100">Resumo e Índice</h3>
+          
+          {/* Executive Summary Stats */}
+          <div className="mb-8 p-6 bg-gray-50 rounded-xl border border-gray-100">
+             <div className="flex items-center gap-2 mb-4">
+               <Activity className="w-5 h-5 text-gray-600" />
+               <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Resumo Global de Hardware</h4>
+             </div>
+             
+             <div className="grid grid-cols-5 gap-4">
+                <div className="flex flex-col items-center p-3 bg-white rounded-lg shadow-sm border border-gray-100">
+                   <span className="text-2xl font-bold text-green-600">{stats.di}</span>
+                   <span className="text-[10px] font-bold text-gray-400 uppercase mt-1">DI (Input)</span>
+                </div>
+                <div className="flex flex-col items-center p-3 bg-white rounded-lg shadow-sm border border-gray-100">
+                   <span className="text-2xl font-bold text-orange-600">{stats.do}</span>
+                   <span className="text-[10px] font-bold text-gray-400 uppercase mt-1">DO (Output)</span>
+                </div>
+                <div className="flex flex-col items-center p-3 bg-white rounded-lg shadow-sm border border-gray-100">
+                   <span className="text-2xl font-bold text-blue-600">{stats.ai}</span>
+                   <span className="text-[10px] font-bold text-gray-400 uppercase mt-1">AI (Analog)</span>
+                </div>
+                <div className="flex flex-col items-center p-3 bg-white rounded-lg shadow-sm border border-gray-100">
+                   <span className="text-2xl font-bold text-purple-600">{stats.ao}</span>
+                   <span className="text-[10px] font-bold text-gray-400 uppercase mt-1">AO (Analog)</span>
+                </div>
+                <div className="flex flex-col items-center p-3 bg-white rounded-lg shadow-sm border border-gray-100">
+                   <span className="text-2xl font-bold text-gray-600">{stats.integrated}</span>
+                   <span className="text-[10px] font-bold text-gray-400 uppercase mt-1">Integrados</span>
+                </div>
+             </div>
+             
+             <div className="mt-4 pt-3 border-t border-gray-200 flex justify-between items-center text-sm">
+                <span className="text-gray-500">Total de Equipamentos: <strong>{equipmentList.length}</strong></span>
+                <span className="font-bold text-gray-800">Total Geral de Pontos: {stats.total}</span>
+             </div>
+          </div>
+
+          <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">Índice de Equipamentos</h4>
           <div className="space-y-2">
             {equipmentList.map((eq, index) => (
               <div key={eq.id} className="flex items-baseline justify-between border-b border-gray-50 py-2">
@@ -160,7 +233,17 @@ const ReportPreview: React.FC<ReportPreviewProps> = ({ equipmentList, projectInf
                     <tbody>
                       {eq.points.map((p, pIdx) => (
                         <tr key={p.id} className={`border-b border-gray-200 ${pIdx % 2 === 0 ? 'bg-transparent' : 'bg-gray-50 print:bg-transparent'}`}>
-                          <td className="py-3 text-xs font-bold text-gray-700">{p.type}</td>
+                          <td className="py-3 text-xs font-bold text-gray-700">
+                             <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] border ${
+                                p.type === PointType.DI ? 'bg-green-50 border-green-200 text-green-700' :
+                                p.type === PointType.DO ? 'bg-orange-50 border-orange-200 text-orange-700' :
+                                p.type === PointType.AI ? 'bg-blue-50 border-blue-200 text-blue-700' :
+                                p.type === PointType.AO ? 'bg-purple-50 border-purple-200 text-purple-700' :
+                                'bg-gray-50 border-gray-200 text-gray-700'
+                             }`}>
+                               {p.type}
+                             </span>
+                          </td>
                           <td className="py-3 text-sm font-medium text-gray-900">{p.name}</td>
                           <td className="py-3 text-sm text-gray-600">{p.description}</td>
                           <td className="py-3 text-xs text-gray-500 font-mono">{p.signalType || '-'}</td>

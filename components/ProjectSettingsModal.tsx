@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { Briefcase, MapPin, User, Building, Save } from 'lucide-react';
+import { Briefcase, MapPin, User, Building, Save, Ruler, Zap, Info } from 'lucide-react';
 import { ProjectInfo } from '../types';
 
 interface ProjectSettingsModalProps {
@@ -9,6 +10,17 @@ interface ProjectSettingsModalProps {
   onSave: (info: ProjectInfo) => void;
 }
 
+const BUILDING_TYPES = [
+  'Escritórios',
+  'Hospitalar / Saúde',
+  'Hotelaria',
+  'Ensino / Escolar',
+  'Comercial / Retalho',
+  'Residencial',
+  'Industrial',
+  'Desportivo'
+];
+
 const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onClose, info, onSave }) => {
   const [formData, setFormData] = useState<ProjectInfo>(info);
 
@@ -16,7 +28,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
     setFormData(info);
   }, [info, isOpen]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
@@ -44,15 +56,16 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
                 </div>
                 <div>
                   <h3 className="text-lg leading-6 font-medium text-gray-900" id="modal-title">
-                    Dados do Projeto
+                    Definições do Projeto
                   </h3>
                   <p className="text-sm text-gray-500">
-                    Estas informações serão apresentadas no relatório técnico.
+                    Dados gerais e especificações do edifício.
                   </p>
                 </div>
               </div>
 
               <div className="space-y-4">
+                {/* Basic Info */}
                 <div>
                   <label htmlFor="projectName" className="block text-sm font-medium text-gray-700">Nome do Projeto</label>
                   <div className="mt-1 relative rounded-md shadow-sm">
@@ -87,6 +100,71 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
                       onChange={handleChange}
                       placeholder="Ex: Lisboa, Portugal"
                     />
+                  </div>
+                </div>
+
+                {/* Building Data Section */}
+                <div className="bg-amber-50 rounded-lg p-3 border border-amber-100 mt-2">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Info className="w-4 h-4 text-amber-600" />
+                    <h4 className="text-xs font-bold text-amber-800 uppercase tracking-wider">Dados para Certificação EN 15232</h4>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div>
+                      <label htmlFor="buildingType" className="block text-xs font-medium text-gray-700 mb-1">Tipologia do Edifício <span className="text-red-500">*</span></label>
+                      <select
+                        id="buildingType"
+                        name="buildingType"
+                        required
+                        className="block w-full pl-3 pr-10 py-1.5 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md border"
+                        value={formData.buildingType || ''}
+                        onChange={handleChange}
+                      >
+                        <option value="" disabled>Selecione a tipologia...</option>
+                        {BUILDING_TYPES.map(type => (
+                          <option key={type} value={type}>{type}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                         <label htmlFor="estimatedArea" className="block text-xs font-medium text-gray-700 mb-1">Área (m²) <span className="text-red-500">*</span></label>
+                         <div className="relative rounded-md shadow-sm">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                              <Ruler className="h-3 w-3 text-gray-400" />
+                            </div>
+                            <input
+                              type="number"
+                              name="estimatedArea"
+                              id="estimatedArea"
+                              required
+                              className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-8 sm:text-sm border-gray-300 rounded-md border py-1.5"
+                              value={formData.estimatedArea || ''}
+                              onChange={handleChange}
+                              placeholder="0"
+                            />
+                         </div>
+                      </div>
+                      <div>
+                         <label htmlFor="thermalPower" className="block text-xs font-medium text-gray-700 mb-1">Pot. Térmica (kW)</label>
+                         <div className="relative rounded-md shadow-sm">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                              <Zap className="h-3 w-3 text-gray-400" />
+                            </div>
+                            <input
+                              type="number"
+                              name="thermalPower"
+                              id="thermalPower"
+                              className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-8 sm:text-sm border-gray-300 rounded-md border py-1.5"
+                              value={formData.thermalPower || ''}
+                              onChange={handleChange}
+                              placeholder="0"
+                            />
+                         </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
